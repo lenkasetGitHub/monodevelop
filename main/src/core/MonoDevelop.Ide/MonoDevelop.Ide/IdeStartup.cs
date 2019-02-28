@@ -515,12 +515,13 @@ namespace MonoDevelop.Ide
 			IdeApp.Workspace.FirstWorkspaceItemOpened -= CompleteSolutionTimeToCode;
 			IdeApp.Workbench.DocumentOpened -= CompleteFileTimeToCode;
 
-			if (timeToCodeTimer == null) {
+			var timer = Interlocked.Exchange (ref timeToCodeTimer, null);
+			if (timer == null) {
 				return;
 			}
 
-			timeToCodeTimer.Stop ();
-			ttcMetadata.SolutionLoadTime = timeToCodeTimer.ElapsedMilliseconds;
+			timer.Stop ();
+			ttcMetadata.SolutionLoadTime = timer.ElapsedMilliseconds;
 
 			ttcMetadata.CorrectedDuration = ttcMetadata.StartupTime + ttcMetadata.SolutionLoadTime;
 			ttcMetadata.Type = type;
@@ -529,7 +530,6 @@ namespace MonoDevelop.Ide
 				Counters.TimeToCode.Inc ("SolutionLoaded", ttcMetadata);
 				IdeApp.ReportTimeToCode = false;
 			}
-			timeToCodeTimer = null;
 		}
 
 		static DateTime lastIdle;
