@@ -66,6 +66,7 @@ namespace MonoDevelop.Ide
 		internal static TimerCounter ProcessCodeCompletion = InstrumentationService.CreateTimerCounter ("Process Code Completion", "IDE", id: "Ide.ProcessCodeCompletion", logMessages:false);
 		internal static Counter<CompletionStatisticsMetadata> CodeCompletionStats = InstrumentationService.CreateCounter<CompletionStatisticsMetadata> ("Code Completion Statistics", "IDE", id:"Ide.CodeCompletionStatistics");
 		internal static Counter<TimeToCodeMetadata> TimeToCode = InstrumentationService.CreateCounter<TimeToCodeMetadata> ("Time To Code", "IDE", id: "Ide.TimeToCode");
+		internal static Counter<TimeToCodeMetadata> TimeToIntellisense = InstrumentationService.CreateCounter<TimeToCodeMetadata> ("Time To Intellisense", "IDE", id: "Ide.TimeToIntellisense");
 		internal static bool TrackingBuildAndDeploy;
 		internal static TimerCounter<BuildAndDeployMetadata> BuildAndDeploy = InstrumentationService.CreateTimerCounter<BuildAndDeployMetadata> ("Build and Deploy", "IDE", id: "Ide.BuildAndDeploy");
 		internal static Counter<PlatformMemoryMetadata> MemoryPressure = InstrumentationService.CreateCounter<PlatformMemoryMetadata> ("Memory Pressure", "IDE", id: "Ide.MemoryPressure");
@@ -175,6 +176,11 @@ namespace MonoDevelop.Ide
 		}
 
 		public long SolutionLoadTime {
+			get => GetProperty<long> ();
+			set => SetProperty (value);
+		}
+
+		public long IntellisenseLoadTime {
 			get => GetProperty<long> ();
 			set => SetProperty (value);
 		}

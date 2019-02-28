@@ -71,6 +71,7 @@ namespace MonoDevelop.Ide
 		static Stopwatch startupTimer = new Stopwatch ();
 		static Stopwatch startupSectionTimer = new Stopwatch ();
 		static Stopwatch timeToCodeTimer = new Stopwatch ();
+		static Stopwatch timeToTypesystemTimer = new Stopwatch ();
 		static Dictionary<string, long> sectionTimings = new Dictionary<string, long> ();
 		static bool hideWelcomePage;
 
@@ -381,6 +382,7 @@ namespace MonoDevelop.Ide
 
 			// Need to start this timer because we don't know yet if we've been asked to open a solution from the file manager.
 			timeToCodeTimer.Start ();
+			timeToTypesystemTimer.Start ();
 			ttcMetadata = new TimeToCodeMetadata {
 				StartupTime = startupTimer.ElapsedMilliseconds
 			};
@@ -389,6 +391,7 @@ namespace MonoDevelop.Ide
 			IdeApp.StartFMOpenTimer (FMOpenTimerExpired);
 			IdeApp.Workspace.FirstWorkspaceItemOpened += CompleteSolutionTimeToCode;
 			IdeApp.Workbench.DocumentOpened += CompleteFileTimeToCode;
+			TypeSystem.MonoDevelopWorkspace.LoadingFinished += CompleteTimeToIntellisense;
 
 			CreateStartupMetadata (startupInfo, sectionTimings);
 
@@ -416,6 +419,7 @@ namespace MonoDevelop.Ide
 		{
 			IdeApp.Workspace.FirstWorkspaceItemOpened -= CompleteSolutionTimeToCode;
 			IdeApp.Workbench.DocumentOpened -= CompleteFileTimeToCode;
+			TypeSystem.MonoDevelopWorkspace.LoadingFinished -= CompleteTimeToIntellisense;
 
 			timeToCodeTimer.Stop ();
 			timeToCodeTimer = null;
@@ -510,6 +514,7 @@ namespace MonoDevelop.Ide
 			CompleteTimeToCode (TimeToCodeMetadata.DocumentType.File);
 		}
 
+		static bool didReportTimeToCode = false;
 		static void CompleteTimeToCode (TimeToCodeMetadata.DocumentType type)
 		{
 			IdeApp.Workspace.FirstWorkspaceItemOpened -= CompleteSolutionTimeToCode;
@@ -529,8 +534,30 @@ namespace MonoDevelop.Ide
 			if (IdeApp.ReportTimeToCode) {
 				Counters.TimeToCode.Inc ("SolutionLoaded", ttcMetadata);
 				IdeApp.ReportTimeToCode = false;
+				didReportTimeToCode = true;
 			}
 		}
+
+		void CompleteTimeToIntellisense (object sender, EventArgs e)
+		{
+			// Reuse ttcMetadata, as it already has other information set.
+			TypeSystem.MonoDevelopWorkspace.LoadingFinished -= CompleteTimeToIntellisense;
+
+			var timer = Interlocked.Exchange (ref timeToTypesystemTimer, null);
+			if (timer == null) {
+				return;
+			}
+
+			timer.Stop ();
+			ttcMetadata.IntellisenseLoadTime = timer.ElapsedMilliseconds - ttcMetadata.SolutionLoadTime;
+			ttcMetadata.CorrectedDuration += timer.ElapsedMilliseconds;
+
+			if (didReportTimeToCode) {
+				Counters.TimeToCode.Inc ("IntellisenseLoaded", ttcMetadata);
+				didReportTimeToCode = false;
+			}
+		}
+
 
 		static DateTime lastIdle;
 		static bool lockupCheckRunning = true;
