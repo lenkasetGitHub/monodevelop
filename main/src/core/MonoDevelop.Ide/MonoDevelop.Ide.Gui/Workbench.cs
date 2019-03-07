@@ -515,32 +515,38 @@ namespace MonoDevelop.Ide.Gui
 
 		public Task<Document> OpenDocument (FilePath fileName, Project project, OpenDocumentOptions options = OpenDocumentOptions.Default)
 		{
-			return OpenDocument (fileName, project, -1, -1, options, null, null);
+			return OpenDocument (fileName, project, -1, -1, options, null, null, false);
 		}
 
 		public Task<Document> OpenDocument (FilePath fileName, Project project, Encoding encoding, OpenDocumentOptions options = OpenDocumentOptions.Default)
 		{
-			return OpenDocument (fileName, project, -1, -1, options, encoding, null);
+			return OpenDocument (fileName, project, -1, -1, options, encoding, null, false);
 		}
 
 		public Task<Document> OpenDocument (FilePath fileName, Project project, int line, int column, OpenDocumentOptions options = OpenDocumentOptions.Default)
 		{
-			return OpenDocument (fileName, project, line, column, options, null, null);
+			return OpenDocument (fileName, project, line, column, options, null, null, false);
+		}
+
+		public Task<Document> OpenDocument (FilePath fileName, Project project, int line, int column, bool initiatedByFileManager, OpenDocumentOptions options = OpenDocumentOptions.Default)
+		{
+			return OpenDocument (fileName, project, line, column, options, null, null, initiatedByFileManager);
 		}
 
 		public Task<Document> OpenDocument (FilePath fileName, Project project, int line, int column, Encoding encoding, OpenDocumentOptions options = OpenDocumentOptions.Default)
 		{
-			return OpenDocument (fileName, project, line, column, options, encoding, null);
+			return OpenDocument (fileName, project, line, column, options, encoding, null, false);
 		}
 
-		internal Task<Document> OpenDocument (FilePath fileName, Project project, int line, int column, OpenDocumentOptions options, Encoding encoding, IViewDisplayBinding binding)
+		internal Task<Document> OpenDocument (FilePath fileName, Project project, int line, int column, OpenDocumentOptions options, Encoding encoding, IViewDisplayBinding binding, bool initiatedByFileManager)
 		{
 			var openFileInfo = new FileOpenInformation (fileName, project) {
 				Options = options,
 				Line = line,
 				Column = column,
 				DisplayBinding = binding,
-				Encoding = encoding
+				Encoding = encoding,
+				InitiatedByFileManager = initiatedByFileManager
 			};
 			return OpenDocument (openFileInfo);
 		}
@@ -634,7 +640,7 @@ namespace MonoDevelop.Ide.Gui
 				
 				if (info.NewContent != null) {
 					Counters.OpenDocumentTimer.Trace ("Wrapping document");
-					Document doc = WrapDocument (info.NewContent.WorkbenchWindow);
+					Document doc = WrapDocument (info);
 					
 					ScrollToRequestedCaretLocation (doc, info);
 					
@@ -865,8 +871,18 @@ namespace MonoDevelop.Ide.Gui
 			if (activeDoc != null)
 				activeDoc.LastTimeActive = DateTime.Now;
 		}
-		
+
 		internal Document WrapDocument (IWorkbenchWindow window)
+		{
+			return WrapDocument (window, false);
+		}
+
+		internal Document WrapDocument (FileOpenInformation foi)
+		{
+			return WrapDocument (foi.NewContent.WorkbenchWindow, foi.InitiatedByFileManager);
+		}
+
+		Document WrapDocument (IWorkbenchWindow window, bool initiatedByFileManager)
 		{
 			if (window == null) return null;
 			Document doc = FindDocument (window);
@@ -879,7 +895,7 @@ namespace MonoDevelop.Ide.Gui
 			WatchDocument (doc);
 
 			doc.OnDocumentAttached ();
-			OnDocumentOpened (new DocumentEventArgs (doc));
+			OnDocumentOpened (new DocumentEventArgs (doc, initiatedByFileManager));
 			
 			return doc;
 		}
@@ -1476,6 +1492,7 @@ namespace MonoDevelop.Ide.Gui
 		public ViewContent NewContent { get; set; }
 		public Encoding Encoding { get; set; }
 		public Project Project { get; set; }
+		public bool InitiatedByFileManager { get; set; }
 
 		/// <summary>
 		/// Is true when the file is already open and reload is requested.

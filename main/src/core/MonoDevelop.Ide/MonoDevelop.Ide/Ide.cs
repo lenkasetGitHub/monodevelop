@@ -189,20 +189,6 @@ namespace MonoDevelop.Ide
 			}
 		}
 
-		// This flag tells us whether or not the solution being loaded was from the file manager.
-		static bool reportTimeToCode;
-		static bool fmTimeoutExpired;
-		public static bool ReportTimeToCode {
-			get => reportTimeToCode && !fmTimeoutExpired;
-			set {
-				reportTimeToCode = value;
-				if (fmTimeoutId > 0) {
-					GLib.Source.Remove (fmTimeoutId);
-					fmTimeoutId = 0;
-				}
-			}
-		}
-
 		public static void Initialize (ProgressMonitor monitor) => Initialize (monitor, false);
 
 		internal static void Initialize (ProgressMonitor monitor, bool hideWelcomePage)
@@ -318,30 +304,19 @@ namespace MonoDevelop.Ide
 			Ide.IdeApp.Workbench.StatusBar.ShowWarning (e.Message);
 		}
 
-		static readonly uint fmTimeoutMs = 2500;
-		static uint fmTimeoutId;
-		internal static void StartFMOpenTimer (Action timeCompletion)
-		{
-			// We only track time to code if the reportTimeToCode flag is set within fmTimeoutMs from this method being called
-			fmTimeoutId = GLib.Timeout.Add (fmTimeoutMs, () => FMOpenTimerExpired (timeCompletion));
-		}
-
-		static bool FMOpenTimerExpired (Action timeCompletion)
-		{
-			fmTimeoutExpired = true;
-			fmTimeoutId = 0;
-			timeCompletion ();
-			return false;
-		}
-
 		//this method is MIT/X11, 2009, Michael Hutchinson / (c) Novell
 		public static void OpenFiles (IEnumerable<FileOpenInformation> files)
 		{
-			OpenFiles (files, null);
+			OpenFiles (files, null, false);
+		}
+
+		internal static void OpenFiles (IEnumerable<FileOpenInformation> files, bool initiatedByFileManager)
+		{
+			OpenFiles (files, null, initiatedByFileManager);
 		}
 
 		//this method is MIT/X11, 2009, Michael Hutchinson / (c) Novell
-		internal static async void OpenFiles (IEnumerable<FileOpenInformation> files, OpenWorkspaceItemMetadata metadata)
+		internal static async void OpenFiles (IEnumerable<FileOpenInformation> files, OpenWorkspaceItemMetadata metadata, bool initiatedByFileManager)
 		{
 			if (!files.Any ())
 				return;
@@ -350,7 +325,7 @@ namespace MonoDevelop.Ide
 				EventHandler onInit = null;
 				onInit = delegate {
 					Initialized -= onInit;
-					OpenFiles (files, metadata);
+					OpenFiles (files, metadata, initiatedByFileManager);
 				};
 				Initialized += onInit;
 				return;
@@ -369,7 +344,7 @@ namespace MonoDevelop.Ide
 					try {
 						// Close the current solution, but only for the first solution we open.
 						// If more than one solution is specified in the list we want to open all them together.
-						await Workspace.OpenWorkspaceItem (file.FileName, closeCurrent, true, metadata);
+						await Workspace.OpenWorkspaceItem (file.FileName, closeCurrent, true, metadata, initiatedByFileManager);
 						closeCurrent = false;
 					} catch (Exception ex) {
 						MessageService.ShowError (GettextCatalog.GetString ("Could not load solution: {0}", file.FileName), ex);
@@ -390,7 +365,7 @@ namespace MonoDevelop.Ide
 			await Workspace.CurrentWorkspaceLoadTask;
 
 			foreach (var file in filteredFiles) {
-				Workbench.OpenDocument (file.FileName, null, file.Line, file.Column, file.Options).ContinueWith (t => {
+				Workbench.OpenDocument (file.FileName, null, file.Line, file.Column, initiatedByFileManager, file.Options).ContinueWith (t => {
 					if (t.IsFaulted)
 						MessageService.ShowError (GettextCatalog.GetString ("Could not open file: {0}", file.FileName), t.Exception);
 				}, TaskScheduler.FromCurrentSynchronizationContext ()).Ignore ();

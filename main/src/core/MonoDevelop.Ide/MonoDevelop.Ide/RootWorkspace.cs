@@ -473,10 +473,10 @@ namespace MonoDevelop.Ide
 
 		public Task<bool> OpenWorkspaceItem (FilePath file, bool closeCurrent, bool loadPreferences)
 		{
-			return OpenWorkspaceItem (file, closeCurrent, loadPreferences, null);
+			return OpenWorkspaceItem (file, closeCurrent, loadPreferences, null, false);
 		}
 
-		internal async Task<bool> OpenWorkspaceItem (FilePath file, bool closeCurrent, bool loadPreferences, OpenWorkspaceItemMetadata metadata)
+		internal async Task<bool> OpenWorkspaceItem (FilePath file, bool closeCurrent, bool loadPreferences, OpenWorkspaceItemMetadata metadata, bool initiatedByFileManager)
 		{
 			lock (loadLock) {
 				if (++loadOperationsCount == 1)
@@ -493,7 +493,7 @@ namespace MonoDevelop.Ide
 			}
 
 			try {
-				return await OpenWorkspaceItemInternal (file, closeCurrent, loadPreferences, metadata, null);
+				return await OpenWorkspaceItemInternal (file, closeCurrent, loadPreferences, metadata, null, initiatedByFileManager);
 			}
 			finally {
 				lock (loadLock) {
@@ -507,10 +507,10 @@ namespace MonoDevelop.Ide
 
 		public Task<bool> OpenWorkspaceItemInternal (FilePath file, bool closeCurrent, bool loadPreferences)
 		{
-			return OpenWorkspaceItemInternal (file, closeCurrent, loadPreferences, null, null);
+			return OpenWorkspaceItemInternal (file, closeCurrent, loadPreferences, null, null, false);
 		}
 
-		internal async Task<bool> OpenWorkspaceItemInternal (FilePath file, bool closeCurrent, bool loadPreferences, OpenWorkspaceItemMetadata metadata, ProgressMonitor loadMonitor)
+		internal async Task<bool> OpenWorkspaceItemInternal (FilePath file, bool closeCurrent, bool loadPreferences, OpenWorkspaceItemMetadata metadata, ProgressMonitor loadMonitor, bool initiatedByFileManager)
 		{
 			var item = GetAllItems<WorkspaceItem> ().FirstOrDefault (w => w.FileName == file.FullPath);
 			if (item != null) {
@@ -534,7 +534,7 @@ namespace MonoDevelop.Ide
 			ITimeTracker timer = Counters.OpenWorkspaceItemTimer.BeginTiming (metadata);
 
 			try {
-				var oper = BackgroundLoadWorkspace (monitor, file, loadPreferences, reloading, metadata, timer);
+				var oper = BackgroundLoadWorkspace (monitor, file, loadPreferences, reloading, metadata, timer, initiatedByFileManager);
 				return await oper;
 			} finally {
 				timer.End ();
@@ -560,7 +560,7 @@ namespace MonoDevelop.Ide
 			}
 		}
 		
-		async Task<bool> BackgroundLoadWorkspace (ProgressMonitor monitor, FilePath file, bool loadPreferences, bool reloading, OpenWorkspaceItemMetadata metadata, ITimeTracker timer)
+		async Task<bool> BackgroundLoadWorkspace (ProgressMonitor monitor, FilePath file, bool loadPreferences, bool reloading, OpenWorkspaceItemMetadata metadata, ITimeTracker timer, bool initiatedByFileManager)
 		{
 			WorkspaceItem item = null;
 
@@ -641,7 +641,7 @@ namespace MonoDevelop.Ide
 					}
 
 					if (Items.Count == 1 && !reloading)
-						FirstWorkspaceItemRestored?.Invoke (this, new WorkspaceItemEventArgs (item));
+						FirstWorkspaceItemRestored?.Invoke (this, new WorkspaceItemEventArgs (item, initiatedByFileManager));
 
 					timer.Trace ("Reattaching documents");
 					ReattachDocumentProjects (null);

@@ -93,7 +93,7 @@ namespace MonoDevelop.Ide.Gui
 		public Task<Document> OpenFile (string filePath, Encoding encoding)
 		{
 			if (binding != null)
-				return IdeApp.Workbench.OpenDocument (filePath, null, -1, -1, OpenDocumentOptions.Default & ~OpenDocumentOptions.TryToReuseViewer, encoding, binding);
+				return IdeApp.Workbench.OpenDocument (filePath, null, -1, -1, OpenDocumentOptions.Default & ~OpenDocumentOptions.TryToReuseViewer, encoding, binding, false);
 			else {
 				app.Launch (filePath);
 				return Task.FromResult<Document> (null);

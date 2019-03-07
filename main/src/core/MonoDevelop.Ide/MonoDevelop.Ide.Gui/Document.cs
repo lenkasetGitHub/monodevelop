@@ -1220,9 +1220,20 @@ namespace MonoDevelop.Ide.Gui
 			get;
 			set;
 		}
-		public DocumentEventArgs (Document document)
+
+		public bool InitiatedByFileManager {
+			get;
+			set;
+		}
+
+		public DocumentEventArgs (Document document) : this (document, false)
+		{
+		}
+
+		internal DocumentEventArgs (Document document, bool initiatedByFileManager)
 		{
 			this.Document = document;
+			InitiatedByFileManager = initiatedByFileManager;
 		}
 	}
 }

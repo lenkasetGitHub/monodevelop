@@ -32,16 +32,26 @@ namespace MonoDevelop.Projects
 	public class WorkspaceItemEventArgs: EventArgs
 	{
 		WorkspaceItem item;
-		
+
+		public bool InitiatedByFileManager {
+			get;
+			set;
+		}
+
 		public WorkspaceItem Item {
 			get {
 				return item;
 			}
 		}
-		
-		public WorkspaceItemEventArgs (WorkspaceItem item)
+
+		public WorkspaceItemEventArgs (WorkspaceItem item) : this (item, false)
+		{
+		}
+
+		public WorkspaceItemEventArgs (WorkspaceItem item, bool initiatedByFileManager)
 		{
 			this.item = item;
+			InitiatedByFileManager = initiatedByFileManager;
 		}
 	}
 	
