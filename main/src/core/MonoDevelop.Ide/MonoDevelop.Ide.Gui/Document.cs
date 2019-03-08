@@ -1221,7 +1221,7 @@ namespace MonoDevelop.Ide.Gui
 			set;
 		}
 
-		public bool InitiatedByFileManager {
+		internal bool InitiatedByFileManager {
 			get;
 			set;
 		}

@@ -528,7 +528,7 @@ namespace MonoDevelop.Ide.Gui
 			return OpenDocument (fileName, project, line, column, options, null, null, false);
 		}
 
-		public Task<Document> OpenDocument (FilePath fileName, Project project, int line, int column, bool initiatedByFileManager, OpenDocumentOptions options = OpenDocumentOptions.Default)
+		internal Task<Document> OpenDocument (FilePath fileName, Project project, int line, int column, bool initiatedByFileManager, OpenDocumentOptions options = OpenDocumentOptions.Default)
 		{
 			return OpenDocument (fileName, project, line, column, options, null, null, initiatedByFileManager);
 		}
@@ -1492,7 +1492,7 @@ namespace MonoDevelop.Ide.Gui
 		public ViewContent NewContent { get; set; }
 		public Encoding Encoding { get; set; }
 		public Project Project { get; set; }
-		public bool InitiatedByFileManager { get; set; }
+		internal bool InitiatedByFileManager { get; set; }
 
 		/// <summary>
 		/// Is true when the file is already open and reload is requested.
